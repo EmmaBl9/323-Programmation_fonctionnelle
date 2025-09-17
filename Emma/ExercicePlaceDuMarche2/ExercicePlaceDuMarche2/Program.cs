@@ -30,6 +30,44 @@ namespace ExercicePlaceDuMarche2
                 new Product { Location = 2, Producer = "Dumont", ProductName = "Myrtilles", Quantity = 12,Unit = "kg", PricePerUnit = 5.50f },
 
             };
+            //La quantité de groseilles disponibles sur le marché
+
+            var totalGroseilles = products.Where(p => p.ProductName.Equals("Groseilles")).Sum(p => p.Quantity);
+            Console.WriteLine($"Quantité totale de groseilles disponible sur le marché : {totalGroseilles}");
+            Console.WriteLine();
+
+            //Le chiffre d’affaire possible total pour chaque marchand(tout produit confondu)
+            var CA = products
+                    .GroupBy(p => p.Producer)
+                    .Select(g => new
+                    {
+                        Producer = g.Key,
+                        TotalCA = g.Sum(p => p.Quantity * p.PricePerUnit)
+                    });
+
+            //Afichage
+            foreach (var item in CA)
+            {
+                Console.WriteLine($"Chiffre d'affaires de {item.Producer} : {item.TotalCA:F2} €");
+            }
+            Console.WriteLine();
+
+            //Le plus grand, le plus petit et la moyenne de ces chiffres d’affaire
+
+            var maxCA = CA.Max(x => x.TotalCA);
+            var minCA = CA.Min(x => x.TotalCA);
+            var avgCA = CA.Average(x => x.TotalCA);
+
+            Console.WriteLine($"Le plus grand chiffre d'affaire est {maxCA}");
+            Console.WriteLine($"Le plus petit chiffre d'affaire est {minCA}");
+            Console.WriteLine($"La moyenne de ces chiffres d'affaires est {avgCA}");
+
+            //Le marchand ayant le plus de noix à vendre
+
+            //Le marchand ayant le plus d’affinités avec ses produits
+
+
+
 
             var i18n = new Dictionary<string, string>()
             {
