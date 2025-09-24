@@ -1,3 +1,4 @@
+using Gpx;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -5,7 +6,9 @@ namespace Rando
 {
     public partial class Rando : Form
     {
-        List<Trackpoint> Trackpoints = new List<Trackpoint>();
+        //stocke les points GPS (latitude, longitude, altitude) lus du fichier
+        List<Trackpoint> trackpoints = new List<Trackpoint>();
+
         Color[] gradient = new Color[]
         {
             Color.FromArgb(255, 144, 238, 144),
@@ -31,13 +34,35 @@ namespace Rando
         private void Rando_Load(object sender, EventArgs e)
         {
             ReadGPXFile("gemmikandersteg.gpx");
+
+            //calculer la distance
+            var distance = trackpoints.Aggregate((a, b) => {
+                return new Trackpoint()
+                {
+                    Latitude = b.Latitude,
+                    Longitude = b.Longitude,
+                    Elevation = b.Elevation,
+                    distance = a.distance+a.GetDistanceFrom(b)
+                };
+            });
+
+            MessageBox.Show($"{distance}");
+
+            // 1 2 3 4
+            //12=>3
+            //33=>6
+            //64=>10
+            //19
+
         }
+
+
         private Point ConvertGpsToPoint(double lat, double lon, int width, int height)
         {
-            double minLat = Trackpoints.Min(p => p.Latitude);
-            double maxLat = Trackpoints.Max(p => p.Latitude);
-            double minLon = Trackpoints.Min(p => p.Longitude);
-            double maxLon = Trackpoints.Max(p => p.Longitude);
+            double minLat = trackpoints.Min(p => p.Latitude);
+            double maxLat = trackpoints.Max(p => p.Latitude);
+            double minLon = trackpoints.Min(p => p.Longitude);
+            double maxLon = trackpoints.Max(p => p.Longitude);
 
             double xNorm = (lon - minLon) / (maxLon - minLon);
             double yNorm = (maxLat - lat) / (maxLat - minLat);
@@ -53,25 +78,53 @@ namespace Rando
 
         private void Rando_Form_Paint(object sender, PaintEventArgs e)
         {
-            if (Trackpoints.Count < 2) return;
+            if (trackpoints.Count < 2) return;
 
             Pen myPen = new Pen(Color.Red, 2);
 
             int width = this.ClientSize.Width;
             int height = this.ClientSize.Height;
 
-            Point[] points = Trackpoints.Select(tp => ConvertGpsToPoint(tp.Latitude, tp.Longitude, width, height)).ToArray();
+            Point[] points = trackpoints.Select(tp => ConvertGpsToPoint(tp.Latitude, tp.Longitude, width, height)).ToArray();
             this.CreateGraphics().DrawLines(myPen, points);
         }
 
         private void ReadGPXFile(string filename)
         {
             const string BASE_PATH = @"C:\Users\pt70wvh\Documents\GitHub\323-Programmation_fonctionnelle\Emma\Rando\gpx\";
-
+            /*
             XNamespace ns = "http://www.topografix.com/GPX/1/1";
             XDocument doc = XDocument.Load(BASE_PATH + filename);
 
             Trackpoints.AddRange(doc.Descendants(ns + "trkpt").Select(x => new Trackpoint { Latitude = double.Parse(x.Attribute("lat").Value, CultureInfo.InvariantCulture), Longitude = double.Parse(x.Attribute("lon").Value, CultureInfo.InvariantCulture), Elevation = double.Parse(x.Element(ns + "ele").Value, CultureInfo.InvariantCulture) }));
+            */
+            var sr = new StreamReader(BASE_PATH+filename);
+            using (GpxReader reader = new GpxReader(sr.BaseStream))
+            {
+                
+                    while (reader.Read())
+                    {
+                        switch (reader.ObjectType)
+                        {
+                            case GpxObjectType.Metadata:
+                                break;
+                            case GpxObjectType.WayPoint:
+                                break;
+                            case GpxObjectType.Route:
+                                break;
+                            case GpxObjectType.Track:
+                                var gpxPoints = reader.Track.ToGpxPoints();
+                                trackpoints.AddRange(gpxPoints.Select(g => new Trackpoint()
+                                {
+                                    Latitude = g.Latitude,
+                                    Longitude = g.Longitude,
+                                    Elevation = g.Elevation
+                                }));
+                                break;
+                        }
+                    }
+                
+            }
         }
     }
 }
